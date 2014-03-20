@@ -1,0 +1,743 @@
+---
+title       : How to extract useful information from very noisy time series?
+subtitle    : Mid-Candidature Review Report
+author      : Yanfei Kang 
+job         : School of Mathematical Sciences, Monash University
+framework   : deckjs    # {io2012, html5slides, shower, dzslides, ...}
+theme       : web-2.0
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : [mathjax]            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+transition  : fade
+
+---
+
+</br>
+</br>
+</br>
+## How to extract useful information from very noisy time series?
+#### (Mid-Candidature Review Report)
+</br>
+
+By Yanfei Kang
+
+</br>
+
+*Main supervisor: Prof. Kate Smith-Miles*
+
+*Associate supervisor: Dr. Danijel Belusic*
+
+
+---
+
+## Outline
+
+>- Motivation
+
+>- Methodology: two steps
+
+>- Applications
+
+>- Conclusion
+
+>- Time-table for completing thesis
+
+>- Publications
+
+>- References
+
+
+---
+
+## Goal
+
+- **<span style=" border-bottom: 1px solid red;"> Pattern (shape) transition within turbulence.</span>**
+
+  >- Location?
+  >- Similar?
+  >- Physical mechanisms?
+  >- How do they transit?
+
+
+``` {r chunk0,cache=TRUE,message=FALSE,echo=FALSE,fig.height=4,fig.width=10}
+load("review.Rdata")
+plot(c(78700:79050),CASES99T7[78700:79050],type='l',ylab="Temperature",cex.lab=1.3,cex.axis=1.3,xlab='')
+lines(c(78900:b[97]),CASES99T7[78900:b[97]],col=2)
+
+```
+
+--- &twocol w1:40% w2:60%
+
+## Why is it difficult and important ?
+
+*** =left
+
+#### Difficult...
+
+
+>- <span style=" border-bottom: 1px solid red;"> Red noise</span>.
+>- <span style=" border-bottom: 1px solid red;"> Varibility of spatial and temporal scales.
+>- <span style=" border-bottom: 1px solid red;"> Small amount of literature.</span>    
+>- Patterns  <span style=" border-bottom: 1px solid red;"> pre-defined?</span> 
+ 
+
+*** =right
+
+#### Important...
+
+
+>- <span style=" border-bottom: 1px solid red;">Physical dynamics</span> of turbulence.
+>- <span style=" border-bottom: 1px solid red;">Cared a lot</span> by the scientific community.
+
+ 
+``` {r chunk1_0,cache=TRUE,message=FALSE,echo=FALSE,fig.height=4,fig.width=10}
+# load("~/Google Drive/Meetings/20126789/Aug_20/meeting0820.Rdata")
+# load("~/Google Drive/Meetings/20126789/Aug_30/meeting0830temp.Rdata")
+# load("~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata")
+# plot(temp[1:5000],type='l',xlab="",ylab="Temperature",cex.lab=1.3,cex.axis=1.3)
+bib <- read.bib("knitcitations.bib")
+```
+
+---
+## 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+#### We are the first to solve this problem in turbulence area...
+
+---
+
+
+## Artificial time series
+
+>- We started from artificial time series.
+
+>- Four shapes: $l=128$
+  
+``` {r chunk1,cache=TRUE,message=FALSE,echo=FALSE,fig.height=3,fig.width=10}
+source("~/Google Drive/Meetings/20126789/June_7/cbfs.R")
+set.seed(123)
+par(mfrow=c(1,4))
+plot(cbf('c'),type='l',col=4,xlab='',ylab='Box',cex.lab=1.3,cex.axis=1.3)
+plot(cbf('b'),type='l',col=4,xlab='',ylab='Ramp-cliff',cex.lab=1.3,cex.axis=1.3)
+plot(cbf('f'),type='l',col=4,xlab='',ylab='Cliff-ramp',cex.lab=1.3,cex.axis=1.3)
+plot(cbf('s'),type='l',col=4,xlab='',ylab='Sine',cex.lab=1.3,cex.axis=1.3)
+```
+
+>- Generation: $5$ instances of each $+$ Gaussian noise ($N(0,1)$) in-between:
+
+``` {r chunk2,cache=TRUE,message=FALSE,echo=FALSE,fig.height=3,fig.width=10}
+load('~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata')
+library(ggplot2)
+plot(c(1:length(SSCIts)),SSCIts,main='',ylab='',type='l',xlab='')
+```
+
+---
+## Initial idea?
+
+##### Initial idea: 
+
+  >- Cluster the <span style=" border: 1px solid red;">*subsequences*</span>.
+  >- Get the prototypes.
+  >- Meaningless clustering results (`r citet(bib[['journals/kais/KeoghL05']])`).
+
+<div align='center'>
+<img src='animation.gif',width=1000,height=400>
+</div>
+
+##### How to solve the problem?
+
+  >- Meaningful method proposed.
+
+
+
+
+---
+
+## Methodology: two steps
+
+
+>1. Extract shapes.
+
+>2. Cluster the extracted shapes.
+
+
+
+---
+
+## $1$st step: shape extraction 
+
+- Perform white noise test on each subsequence.
+
+
+  >- <span style=" border-bottom: 1px solid red;">**Why?**</span> Only care the non-noise subsequences.
+
+  >- <span style=" border-bottom: 1px solid red;">**What?**</span> Has no correlation between its values at different times.
+
+  >- <span style=" border-bottom: 1px solid red;">**How?**</span>  Ljung-Box test (`r citet(bib[['citeulike:2363577']])`).
+
+
+
+---
+
+## White noise test in time series
+
+<hr>
+ 
+ *$H_0$*: The data are independently distributed; *$H_1$*: The data are not independently distributed.
+
+ The test statistic is $$Q=n(n+2)\Sigma_{k=1}^{h}\frac{\hat{(\rho_k^2)}}{n-k},$$ where $n$ is the sample size, $\hat{\rho_k}$ is the sample autocorrelation at lag $k$, and $h$ is the number of lags being tested.
+
+<hr>
+
+>- Then given a window length,  for the $q$th subsequence, get $p$-value $p_q$. For $x(t)$,  a $p$-value series:  $p_1,p_2,\cdots,p_{m-w+1}$.
+
+--- 
+
+## $p$-value series for the artificial data
+<center>
+#### Sliding window length: $w=128$
+</center>
+``` {r chunk4,cache=TRUE,message=FALSE,echo=FALSE,fig.height=6,fig.width=10}
+w=128
+par(mfrow=c(2,1))
+plot(c(1:length(SSCIts)),SSCIts,main='',ylab='',type='l',xlab='')
+plot(tests,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3)
+abline(h=c(0.05),lty=2,col=2)
+```
+
+---
+## How to define shapes?
+
+``` {r chunk4_1,cache=TRUE,message=FALSE,echo=FALSE,fig.height=3,fig.width=10}
+w=128
+plot(tests,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3)
+abline(h=c(0.05),lty=2,col=2)
+```
+
+- <span style=" border: 1px solid red;">*A shape*</span> is a subsequence whose noise test $p$ value is smaller than a predefined significant level $\alpha$ ($\alpha=0.05$).
+
+- Assume there exists a consecutive sequence of $p$ values $p_s,p_{s+1},\cdots,p_t$ which satisfies: 
+
+  - $p_i\leq \alpha, i=s, s+1, \cdots, t$
+  - $t-s\geq w/2$ 
+
+    then we define the subsequence $x_{\left\lfloor\frac{t+s}{2}\right\rfloor}(t)$ as <span style=" border: 1px solid red;">*the shape*</span> we are interested in.
+
+---
+## Advantages?
+
+
+>- Avoids the meaningless clustering issue.
+
+>- Statistically  non-noise.
+
+
+---
+
+## Shapes extracted
+
+
+``` {r chunk8,cache=TRUE,message=FALSE,echo=FALSE,fig.height=8,fig.width=10}
+load('~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata')
+par(mfrow=c(4,5))
+for (i in 1:20)
+plot(shapes_found[i,],type='l',col=4,ylab="",xlab="",cex.lab=1.3,cex.axis=1.3)
+```
+
+---
+
+## Robust to noise?
+
+
+``` {r chunk9,cache=TRUE,message=FALSE,echo=FALSE,fig.height=7,fig.width=16}
+par(mfrow=c(2,2))
+plot(SSCIts20,type='l',xlab='',cex.lab=1.3,cex.axis=1.3,ylab=expression(paste('Noise level: ',2*sigma)))
+plot(SSCIts30,type='l',xlab='',cex.lab=1.3,cex.axis=1.3,ylab=expression(paste('Noise level: ',3*sigma)))
+plot(tests20,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3)
+abline(h=c(0.05),lty=2,col=2)
+plot(tests30,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3)
+abline(h=c(0.05),lty=2,col=2)
+```
+
+---
+
+## Red noise test in time series
+
+>- <span style=" border-bottom: 1px solid red;">**Why?**</span> Many areas, such as climate, rely on red noise (`r citet(bib[['Storch99statisticalanalysis']])`).
+
+>- <span style=" border-bottom: 1px solid red;">**What?**</span>   $AR(1)$ stationary Gaussian process at unit lag (`r citet(bib[['Storch99statisticalanalysis']])`): $$x(t)=\phi x(t-1)+\epsilon(t),$$
+  where $x(t)$ is the value of variable at time $t$, $\phi$ is the autocorrelation coefficient with lag $1$, $\epsilon(t)$ is the value of white noise function at time $t$.
+  
+>- <span style=" border-bottom: 1px solid red;">**How?**</span>  See next slide.
+
+---
+
+## Red noise test in time series
+
+- To test whether a subsequence is red noise
+  
+  >- Firstly fit an $AR(1)$ model on the subsequence
+  
+  >- Perform white noise test on the residuals. 
+  
+  >- Residuals: white noise?
+
+- Extract shapes according to the red noise $p$-value series.
+
+---
+
+## How effective is the first step?
+
+
+Two ways:
+
+>- Models
+
+>- Phase randomization (`r citet(bib[['R18']])`)
+
+
+
+---
+## Way $1$: Models
+
+- Randomly generate $1000$ $AR(1)$ (linear) models with $l=500$
+
+    >* $x_t=\phi*x_{t-1}+\epsilon_t$
+    >* $\phi=0.9$
+    >* $\text{var}(\epsilon_t)=1-\phi^2$
+    
+- Introduce non-linear components into the linear models (`r citet(bib[['R17']])`)
+
+    >* $y_t=x_t+a*(x_t^2-1)$
+    >* The parameter $a$ is to control the non-linearity of $y_t$.
+
+- Investigate change of shape numbers before and after including the non-linear components
+  
+
+--- &twocol w1:40% w2:60%
+## Results
+*** left
+#### 
+<img align="left" src="nonlinear.jpg" width=500, height=500>
+
+*** right
+
+#### Conclusion
+
+
+>* Percentage of models whose residual test $p$ values are larger-than-$.05$ decreases as $a$ goes larger.
+
+>* Time series becomes less $AR(1)$ (red-noise)-like with larger $a$ introduced.
+
+
+
+---
+## Way $2$: Phase Randomization 
+
+>* Take the Fourier Transform of the Turbulence temperature time series with length $l=20000$.
+
+>* Randomize phase information while keeping the magnitude.
+
+>* Do inverse Fourier Transform to get back to time domain.
+
+>* Investigate change of shape numbers and total length of shapes after phase randomization.
+
+
+--- &twocol w1:40% w2:60%
+## Results
+*** left
+#### 
+<img align="center" src="phase.jpg" width=500, height=500>
+
+*** right
+#### Conclusion
+</br>
+
+
+>* Phase randomization leads to much less shapes.
+
+>* Not recognizing shapes without structures.
+
+
+---
+
+## Noise tests on artificial data with red noise
+``` {r chunkred1,cache=TRUE,message=FALSE,echo=FALSE,fig.height=7,fig.width=10}
+load('~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata')
+par(mfrow=c(2,1))
+plot(SSCItsred,type='l',xlab='',ylab='',cex.lab=1.3,cex.axis=1.3)
+plot(SSCItsredrnt,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3,main='Red noise test')
+abline(h=c(0.05),lty=2,col=2)
+```
+
+---
+## Red noise test essential? 
+<center>
+#### The answer is Yes!
+</center>
+``` {r chunkred2,cache=TRUE,message=FALSE,echo=FALSE,fig.height=7,fig.width=10}
+load('~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata')
+par(mfrow=c(2,1))
+plot(SSCItsredrnt,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3,main='Red noise test')
+abline(h=c(0.05),lty=2,col=2)
+plot(SSCItsredwnt,type='l',ylim=c(0,1),xlab="",ylab="p.value",cex.lab=1.3,cex.axis=1.3,main='White noise test')
+abline(h=c(0.05),lty=2,col=2)
+```
+
+---
+
+
+
+##  How to explain these shapes?
+<center>
+#### Are some of them similar to each other?
+#### Could they be organized in some way?
+
+``` {r chunk902,cache=TRUE,message=FALSE,echo=FALSE,fig.height=8,fig.width=10}
+load('~/Documents/Conferences&Presentations/SSCI_2013_paper/SSCI2013.Rdata')
+par(mfrow=c(4,5))
+for (i in 1:20)
+plot(shapes_found[i,],type='l',col=4,ylab="",xlab="",cex.lab=1.3,cex.axis=1.3)
+```
+
+</center>
+
+--- 
+
+## $2$nd step
+
+
+
+#### Goal: cluster the extracted shapes into patterns. 
+
+
+
+> A cluster is a set of entities that are alike, and entities from different clusters are not alike. 
+
+> -- *`r citet(bib[['definition']])`*
+
+- Clustering can be used for understanding data.
+
+- To perform clustering we need to understand data.
+
+
+
+--- &twocol w1:40% w2:60%
+## Understanding data
+
+*** left
+###### Shapes
+
+<img align="left" src="figure/chunk902.png" width=500, height=450>
+
+*** right
+
+###### Features
+
+1. `standard deviation`
+2. `serial-correlation`
+3. `trend`
+4. `maximum` of the first order difference. 
+5. `minimum` of the first order difference. 
+6. `standard deviation` of the first order difference. 
+7. `serial-correlation` of the first order difference. 
+
+---
+## How to cluster the shapes?
+
+- Hierarchical clustering based on features (`r citet(bib[['journals/datamine/WangSH06']])`). 
+
+  >- Avoid high dimensional input.
+  >- Describe the dynamics of the shapes efficiently.
+  >- Enable the comparison of the shapes with different lengths.
+
+- The feature set can be chosen for a specific application to best capture the underlying characteristics of the shapes.
+
+
+
+---
+<center>
+## Clustering results
+</center>
+<center><font size='5' color="grey"><p> Hierarchical clustering of the extracted shapes in the feature space.</p></font></center>
+<img align="center" src="SSCIshapeclustering.jpg" width=650, height=800>
+
+
+
+---
+<center>
+## Why features?
+</center>
+
+<center> <font size='5' color="grey">The left figure is based on raw data; the right figure is based on features.</font></center>
+<img align='left' src="SSCIshapeclusteringraw.jpg" width=350, height=500/>
+<img align='left' src="SSCIshapeclustering.jpg" width=350, height=500,margin=0.5/>
+
+
+
+</br>
+
+<p>&#160<sub> 1. No features $=$ Bad clustering.</sub></p>
+
+<p>&#160<sub> 2. Similar in euclidean distances $\neq$ Similar shapes. </sub></p>
+
+<p>&#160<sub> 3. Similar shapes with different shifts or lengths $\rightarrow$ One cluster.</sub></p>
+
+
+---
+<center>
+## Comparison with literature 
+</center>
+
+
+<center> <font size='5' color='grey'>The left shows shapes found using the method in `r citet(bib[['MueenKZCW09']])` while the right using ours.</font></center>
+
+<img align="left" src="motif13.jpg" width=350, height=500>
+<img align='left' src="SSCIshapeclustering.jpg" width=350, height=500>
+
+
+
+</br>
+</br>
+</br>
+
+<p>&#160 <sub>1. Shapes with noise.</sub></p>
+
+<p>&#160 <sub>2. Our method can avoid the problem.</sub></p>
+
+---
+## Other results
+
+The clustering can be done in an on-line manner using the Growing Feature Quantization method proposed in `r citet(bib[['ykang']])`.
+``` {r chunk13,cache=TRUE,message=FALSE,echo=FALSE,fig.height=10,fig.width=10}
+source("~/Google Drive/Meetings/20126789/June_7/GFQ.R")
+Results=GFQ(onlinefeatures$feature,0.88)
+shapes=onlinefeatures$shape
+par(mfrow=c(5,4))
+for (i in 1:20)
+{plot(shapes[i,],type='l',col=Results$cluster[i],xlab="",ylab="",cex.lab=1.3,cex.axis=1.3)}
+```
+---
+
+## Application to turbulence: data
+
+>- Cooperative Atmosphere-Surface Exchange Study (CASES-99), conducted near Leon, Kansas, USA, during October, 1999 (`r citet(bib[['cases99']])`). 
+
+>- The air temperature on October 5 is analyzed for extraction, clustering and explanation of shapes.
+
+>- $1$ Hz data; $24$ hours.
+
+>- $l=86400.$
+
+
+---
+
+## Feature set
+
+
+
+  
+###### Shape features
+
+  - `Smoothness`: $\frac{\text{sd}(\text{diff}(x))}{\text{mean(diff}(x)}$
+  - `diff kurtosis`:  kurtosis of diff($x$)
+  - `diff Max`: $\text{max}(\text{diff}(x,\text{lag}=5))$
+  - `diff Min`: $\text{min}(\text{diff}(x,\text{lag}=5))$
+  - `sd`: measured in the same way as in the artificial time series
+  - `Kurtosis`: measured in the same way as before
+  - `Skewness`: measured in the same way as before
+  - `Peroid`:  measured in the same way as before
+  
+###### Physical feature: Stability  measure using **Richardson number** $R$.
+
+  - $R=\frac{N^2}{S^2}$
+  - $N^2=\frac{g}{\bar{\theta}} \frac{\partial \bar{\theta}}{\partial z}$, where $\theta=T+0.01*z$, $z$ is the level height.
+  - $S^2=(\frac{\partial \bar{u}}{\partial z})^2+(\frac{\partial \bar{v}}{\partial z})^2$, where $u$ and $v$ are the wind vectors from different directions.  
+
+--- &twocol w1:40% w2:60%
+
+## Clustering
+
+*** left
+####  Heatmap
+
+<img align="left" src="figure/heatmap.png" width=800, height=600>
+
+
+*** right
+#### Cluster center ($k=7$)
+</br>
+
+``` {r echo=FALSE,message=FALSE,results='asis'}
+library(cluster)
+load('~/Documents/Meetings_2013/0320/0320.Rdata')
+library(xtable)
+print(xtable(t(cm6),digits=2),type="html")
+```
+
+---
+## Results on turbulence time series
+
+<center>
+#### Instances of extracted shapes in ramplike cluster:
+</center>
+``` {r chunk14,cache=TRUE,message=FALSE,echo=FALSE,fig.height=7,fig.width=10}
+load('~/Documents/Meetings_2013/0320/0320.Rdata')
+ind=which(mycl==3)[c(1,4,15,16)]
+par(mfrow=c(2,2))
+for (i in 1:length(ind)){
+  plot(c((a[ind[i]]):(b[ind[i]])),CASES99T7[(a[ind[i]]):(b[ind[i]])],type='l',xlab='',ylab='Temp',main=paste('Shape',i),cex.lab=1.3,cex.axis=1.3)
+}
+```
+
+---
+## Results on turbulence time series
+<center>
+#### Instances of extracted shapes in other clusters:
+</center>
+``` {r chunk15,cache=TRUE,message=FALSE,echo=FALSE,fig.height=8,fig.width=14}
+load('~/Documents/Meetings_2013/0320/0320.Rdata')
+inds=matrix(c(1,5,2,23,50,51,40,47,54,98,74,75),6,2,byrow=TRUE)
+cls=c(1,2,4,5,6,7)
+
+par(mfrow=c(3,4))
+for (i in 1:6)
+  for (j in 1:2){
+  plot(c((a[inds[i,j]]):(b[inds[i,j]])),CASES99T7[(a[inds[i,j]]):(b[inds[i,j]])],type='l',xlab='',ylab='Temp',main=paste('Cluster',cls[i], ': Shape',j),cex.lab=1.3,cex.axis=1.3,col=i)
+}
+```
+
+---
+## Cluster transition of shapes
+``` {r chunk16,cache=TRUE,message=FALSE,echo=FALSE,fig.height=4,fig.width=8}
+load('~/Documents/Meetings_2013/0320/0320.Rdata')
+par(mar=c(5,4,4,5)+.1)
+plot(mycl,xlab='',ylab='Cluster',type='l',col=2,cex.lab=1.3,cex.axis=1.3)
+par(new=TRUE)
+stability=casemeasures[,1]
+stability[which(stability<(-0.5))]=-0.5
+plot(stability,type="l",col="blue",xaxt="n",yaxt="n",xlab="Shape Number",ylab="",cex.lab=1.3,cex.axis=1.3)
+axis(4)
+mtext("Stability",side=4,line=3)
+legend("topleft",col=c("red","blue"),lty=1,legend=c("Cluster","Stability"))
+```
+
+>- With the stability changing from - to + and - again (time changing from day to night and back to day time), the shape cluster number changes at the same time.
+
+>- In line with the reality.
+
+>- Meaningfulness of the shape clustering.
+
+---
+## Conclusion
+
+- A two-step method for shape extraction from time series is proposed: 
+
+  >- A noise test
+  >- An organization of the extracted shapes
+  
+- Better results than literature
+
+- Robust to noise level
+
+- Applied to artificial data 
+
+- Applied to real world data
+
+- A big step regarding turbulence time series shape extraction. 
+
+
+---
+
+## Time-table for completing thesis
+
+
+
+##### Apr 2013 - May 2013 
+
+  - Attend the 2013 IEEE Symposium Series on Computational Intelligence and give a presentation.
+  - Submit the journal paper.
+  - Apply the method to the **FLOSS** dataset we have, which is so complicated that nobody knows what happens regarding shapes.
+  - Apply the method to multiple time scales to get shapes with different temporal scales.
+
+##### June 2013
+
+  - **List** all the statistical features that are helpful for clustering. 
+  - Find a way to **justify** feature set selection, either by visualization or optimization methods.
+  - Check whether there are other features that may help to describe characteristics of the shapes in this particular dataset.
+
+
+--- 
+
+## Time-table for completing thesis
+
+
+
+
+##### July 2013 - Aug 2013
+
+  - Cluster the shapes found in the dataset based on the proper feature set.
+  - Determine the characteristics of each cluster.
+  - Find the differences and similarities between cluster behaviors.
+  - Determine the physical mechanisms of each cluster.
+  - Extend the analysis to the available **multivariate and multidimensional** time series from FLOSS.
+  - Investigate the possibility of automatically classifying different physical mechanisms using multivariate and multidimensional features in clustering.
+  - Get a conclusion about the behaviors of the turbulence in FLOSS dataset.
+  - Submit a journal paper on the physical interpretation of shapes from FLOSS dataset. 
+
+--- 
+
+## Time-table for completing thesis
+
+##### Sep 2013 - Oct 2013
+
+  - Based on the completion of the shape detection method, look at the application to **other areas** such as chemical spectrum detection in spectroscopy (`r citet(bib[['spectrum']])`).
+  - Look at the application on sleep stages (`r citet(bib[['1020608']])`).
+  - Get some conclusions.
+
+##### Nov 2013
+
+  - **Revisit** the change detection examples used in 2011 and apply the shape extraction method to them.
+  - Check whether it helps with the change detection and how it relates to the change detection method.
+  
+##### Dec 2013 - Mar 2014 
+
+  - Based on the above research results, begin to write up the first draft of thesis.
+  - Revise the **thesis** and submit it.
+
+
+---
+## Publications
+
+```{r results='asis',warning=FALSE,message=FALSE,echo=FALSE}
+library(knitcitations)
+bib <- read.bibtex("knitcitations.bib")
+print(bib['ykang'],'html')
+print(bib['ykang2013'],'html')
+print(bib['ykangrms'],'html')
+```
+
+
+---
+## References
+```{r results='asis',warning=FALSE,message=FALSE,echo=FALSE}
+print(bib[1:6],'html')
+```
+
+---
+## References
+```{r results='asis',warning=FALSE,message=FALSE,echo=FALSE}
+print(bib[7:12],'html')
+```
+
+---
+<center>
+## Questions?
+
+<img src="http://i.imgur.com/wjyiL.jpg" width="700" height="500">
